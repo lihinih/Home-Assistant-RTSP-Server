@@ -1,6 +1,27 @@
 # Metropolia Garage Project Template
 ## Repository for materials related to Metropolia Garage projects
 
+---
+
+## 📑 Table of Contents
+
+- [Overview](#overview)
+- [Project Goals](#project-goals)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [Project Structure](#project-structure)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
+- [Team Members](#team-members)
+- [Acknowledgments](#acknowledgments)
+
+---
+
 This is a repository created to serve as a standard template for all official Metropolia Garage projects. 
 In this repository, you can find the standard project folder structure, project documentation template and guide as well as introduction to how to use git and github.
 
