@@ -43,7 +43,7 @@ This project implements a reliable RTSP-based camera streaming pipeline using Go
   
 ## Architecture
 
-![Architecture Diagram](assets/architecture.png)
+![Streaming Pipeline Flowchart](Flowchart.png)
 
 
 ## Prerequisites 
