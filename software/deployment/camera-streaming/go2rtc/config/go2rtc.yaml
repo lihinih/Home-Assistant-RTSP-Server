@@ -1,0 +1,18 @@
+streams:
+  iphone_cam:
+  - rtsp://192.168.50.211:8554/stream
+  Mobile_cam_2:
+  - rtsp://192.168.50.237:8554/
+  Camera_3:
+  - rtsp://admin:aiot2024@192.168.50.50:554/h264Preview_01_main
+  Raspberrypi_cam:
+  - rtsp://192.168.50.163:8554/rpi_camera
+  - ffmpeg:iphone_cam#video=h264#width=1920#height=1080#bitrate=2000k#framerate=30
+  web_cam:
+  - ffmpeg:device=/dev/video0
+webrtc:
+  listen: :8555
+api:
+  listen: :1984
+log:
+  level: debug

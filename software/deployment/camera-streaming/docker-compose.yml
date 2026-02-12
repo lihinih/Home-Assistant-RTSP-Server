@@ -1,0 +1,36 @@
+services:
+  go2rtc:
+    build:
+      context: ./go2rtc
+      dockerfile: Dockerfile
+    container_name: go2rtc
+    ports:
+      - "1984:1984"   # API
+      - "8554:8554"   # RTSP (not needed if only using internal streaming)
+      - "8555:8555"   # WebRTC
+    volumes:
+      - ./go2rtc/config/go2rtc.yaml:/config/go2rtc.yaml:ro
+    restart: unless-stopped
+    networks:
+    - streaming-network
+
+  homeassistant:
+    build:
+      context: ./home-assistant
+      dockerfile: Dockerfile
+    container_name: homeassistant
+    restart: unless-stopped
+    ports:
+      - "8123:8123"
+    volumes:
+      - ./home-assistant/config:/config
+    environment:
+      - TZ=Europe/Helsinki
+    networks:
+      - streaming-network
+    depends_on:
+      - go2rtc
+
+networks:
+  streaming-network:
+    driver: bridge

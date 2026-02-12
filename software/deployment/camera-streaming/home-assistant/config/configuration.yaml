@@ -1,0 +1,21 @@
+# Loads default set of integrations
+default_config:
+
+# Enable Stream integration
+stream:
+
+# Automation
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+# Logger
+logger:
+  default: info
+  logs:
+    homeassistant.core: info
+    homeassistant.components.camera: debug
+    homeassistant.components.stream: debug
+
+
+    

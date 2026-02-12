@@ -1,0 +1,22 @@
+# Home Assistant runtime files
+software/deployment/camera-streaming/home-assistant/config/custom_components/
+software/deployment/camera-streaming/home-assistant/config/.storage/
+software/deployment/camera-streaming/home-assistant/config/home-assistant.log*
+software/deployment/camera-streaming/home-assistant/config/deps/
+
+# Python
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Home Assistant runtime system files
+software/deployment/camera-streaming/home-assistant/config/.HA_VERSION
+software/deployment/camera-streaming/home-assistant/config/.ha_run.lock
+software/deployment/camera-streaming/home-assistant/config/home-assistant_v2.db
+software/deployment/camera-streaming/home-assistant/config/home-assistant_v2.db-*
