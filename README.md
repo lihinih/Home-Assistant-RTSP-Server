@@ -109,6 +109,7 @@ You should see:
 
 ## Configuration 
 ### Go2RTC Configuration (go2rtc/config/go2rtc.yaml) 
+[`go2rtc.yaml`](software/deployment/camera-streaming/go2rtc/config/go2rtc.yaml)
 
 ```text
 streams: 
