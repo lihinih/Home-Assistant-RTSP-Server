@@ -257,7 +257,7 @@ networks:
 
 
 ### Adding Cameras to Home Assistant
-#### Step 1: Add WebRTC Camera Integration
+#### Step 1: Add WebRTC Camera Integration via HACS
 
 1. Go to Settings → Devices & Services 
 2. Click + Add Integration 
