@@ -25,7 +25,7 @@ def update_go2rtc_config(config_params):
 
     # Update camera with test parameters
     config['streams']['Camera_3'] = [
-         f"ffmpeg:rtsp://admin:aiot2024@192.168.50.13:554/h264Preview_01_main#video={config_params['codec']}#width={config_params['width']}#height={config_params['height']}#bitrate={config_params['bitrate']}#framerate={config_params['framerate']}"
+         f"ffmpeg:rtsp://admin:aiot2024@192.168.50.13:554/h264Preview_01_main#video={config_params['codec']}#hardware=cuda#width={config_params['width']}#height={config_params['height']}#bitrate={config_params['bitrate']}#framerate={config_params['framerate']}"
     ]
 
     with open(config_path, 'w') as f:
