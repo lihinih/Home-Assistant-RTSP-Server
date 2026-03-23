@@ -10,6 +10,42 @@ import sys
 import os
 import yaml
 
+def check_camera_stream():
+    """
+    Probe the camera RTSP source directly to confirm it is alive.
+    Returns True if reachable, False otherwise.
+    """
+    print("  Checking camera stream at rtsp://admin:aiot2024@192.168.50.13:554/h264Preview_01_main ...")
+    try:
+        result = subprocess.run(
+            [
+                'ffprobe',
+                '-v', 'error',
+                '-rtsp_transport', 'tcp',
+                '-timeout', '5000000',  # 5 seconds
+                '-i', 'rtsp://admin:aiot2024@192.168.50.13:554/h264Preview_01_main',
+                '-show_entries', 'format=duration',
+                '-of', 'default=noprint_wrappers=1'
+            ],
+            capture_output=True,
+            timeout=10
+        )
+        if result.returncode == 0:
+            print("  ✓ Camera stream is live")
+            return True
+        else:
+            print(result.stderr.decode())
+            print("  ✗ Camera stream unreachable (ffprobe returned error)")
+            return False
+    except subprocess.TimeoutExpired:
+        print("  ✗ Camera stream unreachable (connection timed out)")
+        return False
+    except FileNotFoundError:
+        print("  ✗ ffprobe not found — make sure ffmpeg is installed and in PATH")
+        return False
+    except Exception as e:
+        print(f"  ✗ Camera check failed: {e}")
+        return False
 
 def update_go2rtc_config(config_params):
     """Update iphone_cam stream with new ffmpeg configuration"""
@@ -25,14 +61,14 @@ def update_go2rtc_config(config_params):
 
     # Update camera with test parameters
     config['streams']['Camera_3'] = [
-         f"ffmpeg:rtsp://admin:aiot2024@192.168.50.13:554/h264Preview_01_main#video={config_params['codec']}#hardware=cuda#width={config_params['width']}#height={config_params['height']}#bitrate={config_params['bitrate']}#framerate={config_params['framerate']}"
+         f"ffmpeg:rtsp://admin:aiot2024@192.168.50.13:554/h264Preview_01_main#video={config_params['codec']}#hardware=nvenc#width={config_params['width']}#height={config_params['height']}#bitrate={config_params['bitrate']}#framerate={config_params['framerate']}"
     ]
 
     with open(config_path, 'w') as f:
         yaml.dump(config, f, default_flow_style=False, sort_keys=False)
 
     print(
-        f"✓ Updated iphone_cam: {config_params['codec']}, {config_params['width']}x{config_params['height']}, {config_params['bitrate']}, {config_params['framerate']}fps")
+        f"✓ Updated ip_cam: {config_params['codec']}, {config_params['width']}x{config_params['height']}, {config_params['bitrate']}, {config_params['framerate']}fps")
 
 def restart_container():
     """Restart Go2RTC container"""
@@ -63,27 +99,45 @@ def trigger_stream():
         return None
 
 def wait_for_active_stream(timeout=60):
-    """Wait until Go2RTC has an active producer stream"""
-    print("\n  Waiting for active stream...")
+    """Trigger and wait until Go2RTC is actively transcoding.
+    Returns the consumer process if successful, None if failed."""
+    print("  Waiting for active stream...")
     start = time.time()
+    consumer = None
     while time.time() - start < timeout:
         try:
+            # Kill previous consumer attempt before retrying
+            if consumer:
+                consumer.terminate()
+
+            consumer = trigger_stream()  # nudge go2rtc to connect
+
+            time.sleep(3)  # give it a moment before probing
+
             result = subprocess.run(
-                ['podman', 'logs', 'go2rtc', '--tail', '20'],
-                capture_output=True, text=True, timeout=10
+                ['ffprobe',
+                 '-v', 'error',
+                 '-rtsp_transport', 'tcp',
+                 '-timeout', '5000000',
+                 '-i', 'rtsp://localhost:8554/Camera_3',
+                 '-show_entries', 'format=duration',
+                 '-of', 'default=noprint_wrappers=1'],
+                capture_output=True,
+                timeout=10
             )
-            logs = result.stdout.lower() + result.stderr.lower()
-            if 'start producer' in logs or 'run rtsp' in logs:
+            if result.returncode == 0:
                 print("  ✓ Active stream detected!")
-                return True
+                return consumer  # return the live consumer process
             else:
-                trigger_stream()
                 time.sleep(5)
         except Exception as e:
             print(f"  Warning: {e}")
             time.sleep(5)
+
     print("  ✗ Stream not detected after timeout!")
-    return False
+    if consumer:
+        consumer.terminate()
+    return None
 
 def verify_data_capture():
     """Verify Go2RTC container is running and producing stats"""
@@ -105,34 +159,43 @@ def verify_data_capture():
         print(f"  ✗ Stats verification error: {e}")
         return False
 
-def run_test(test_id, config_params, duration=60, stabilization_time=60):
+def run_test(test_id, config_params, duration=60, stabilization_time=30):
     """Run complete automated test"""
 
     print("\n" + "="*80)
     print(f"RUNNING TEST: {test_id}")
     print("="*80)
 
+    # Step 0: Verify camera is reachable before doing anything
+    print("\n[0/6] Verifying camera stream...")
+    if not check_camera_stream():
+        print("\n✗ Test aborted: Camera is not streaming.")
+        print("  → Connect the camera and try again.")
+        return False
+
     # Step 1: Update configuration
-    print("\n[1/5] Updating configuration...")
+    print("\n[1/6] Updating configuration...")
     update_go2rtc_config(config_params)
 
     # Step 2: Restart container
-    print("\n[2/5] Restarting container...")
+    print("\n[2/6] Restarting container...")
     if not restart_container():
         print("✗ Test failed: Could not restart container")
         return False
 
     # Step 3: Wait for stabilization
-    print(f"\n[3/5] Waiting {stabilization_time} seconds for stabilization...")
+    print(f"\n[3/6] Waiting {stabilization_time} seconds for stabilization...")
     for i in range(stabilization_time, 0, -1):
         print(f"\r  Stabilizing... {i} seconds remaining", end='', flush=True)
         time.sleep(1)
     print("\n✓ Stream stabilized")
 
-    # Step 4: Start stream consumer
-    print("\n[4/6] Starting stream consumer...")
-    consumer = trigger_stream()
-    time.sleep(5)  # give time to connect
+    # Step 4: Verify stream is active
+    print("\n[4/6] Waiting for active stream...")
+    consumer = wait_for_active_stream(timeout=60)
+    if not consumer:
+        print("✗ Test failed: go2rtc did not start streaming")
+        return False
 
     # Step 5: Capture performance data
     print(f"\n[5/6] Capturing performance data for {duration} seconds...")
@@ -140,9 +203,8 @@ def run_test(test_id, config_params, duration=60, stabilization_time=60):
     log_file = capture_stats.capture_docker_stats(test_id, duration)
 
     # Stop consumer after capture
-    if consumer:
-        consumer.terminate()
-        print("  ✓ Stream consumer stopped")
+    consumer.terminate()
+    print("  ✓ Stream consumer stopped")
 
     # Step 6: Cool down
     print("\n[6/6] Cooling down before next test...")
