@@ -109,7 +109,7 @@ def capture_docker_stats(test_id, duration=60, interval=1):
             time.sleep(interval)
 
         except subprocess.TimeoutExpired:
-            print("\nWarning: Docker command timed out, retrying...")
+            print("\nWarning: Stats command timed out, retrying...")
             continue
         except Exception as e:
             print(f"\nError capturing stats: {e}")
